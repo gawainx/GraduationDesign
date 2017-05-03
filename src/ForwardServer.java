@@ -1,7 +1,10 @@
+import org.json.JSONException;
+import org.json.JSONObject;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -30,47 +33,94 @@ public class ForwardServer implements Runnable{
             ServerSocket ss = new ServerSocket(this.port);
             for(;;){
                 Socket c =ss.accept();
-                try(BufferedReader in = new BufferedReader(
-                        new InputStreamReader(c.getInputStream())
-                );
-                    PrintWriter out = new PrintWriter(
-                            new OutputStreamWriter(c.getOutputStream())
-                    )
-                ){
-                    StringBuilder mes = new StringBuilder();
-                    String line;
-                    while((line = in.readLine())!=null){
-                        if(line.length() == 0) break;
-                        mes.append(line);// TODO:any need to handle /n ?
-                    }
-                    String dataJson = mes.toString();
-                    String targetName = GAHttpClient.JSONParser(dataJson,"targetName");
-                    String targetDeviceIP = null;
-                    /*TODO: Can add Cache Map to storage id-IP Tables here*/
-                    if(targetName.equalsIgnoreCase("Local")){
-                        //initialize the device info
-                        GAHttpServer.setStatusJSON(dataJson);
-                    }else{
-                        if(routerTable.containsKey(targetName)){
-                            targetDeviceIP = routerTable.get(targetName);
-                        }else{
-                            GAHttpClient reqIP = new GAHttpClient(
-                                    "http://api.devices.com:8080/"+targetName);//need to modify the ip address
-                            targetDeviceIP = GAHttpClient.JSONParser(
-                                    reqIP.handleGetResponseBody(),"URI"
-                            );
-                            routerTable.put(targetName,targetDeviceIP);
-                        }
-                        GAHttpClient forward = new GAHttpClient(targetDeviceIP);
-                        forward.handlePutResponseBody(dataJson);
-                    }
-                    out.write("success"+'\n');
-                    out.flush();
-                    System.out.println("Finish");
-                }
+                ConnectionHandler chndlr = new ConnectionHandler(c);
+                new Thread(chndlr).start();
             }
         }catch (IOException e){
             e.printStackTrace();
+        }
+    }
+    private class ConnectionHandler implements Runnable{
+        private Socket sock;
+
+        ConnectionHandler(Socket sock){
+            this.sock = sock;
+        }
+
+        @Override
+        public void run() {
+
+            try(BufferedReader in = new BufferedReader(
+                    new InputStreamReader(sock.getInputStream())
+            );
+                PrintWriter out = new PrintWriter(
+                        new OutputStreamWriter(sock.getOutputStream())
+                )
+            ){
+                StringBuilder mes = new StringBuilder();
+                String line;
+                while((line = in.readLine())!=null){
+                    if(line.length() == 0) break;
+                    mes.append(line);// TODO:any need to handle /n ?
+                }
+                String dataJson = mes.toString();
+                System.out.println(dataJson);
+                String targetName = GAUtils.JSONParser(dataJson,"targetName");
+                String targetDeviceIP = null;
+                    /*TODO: Can add Cache Map to storage id-IP Tables here. Need to modify. Name-id-IP*/
+                if(targetName.equalsIgnoreCase("Registry")){
+                    //report local status to registry
+                    //TODO Send info to Registry
+                    routerTable.clear();
+                    String tmp = MakeStatus(dataJson);
+                    if(tmp!=null){
+                        GAHttpServer.setStatusJSON(tmp);
+                    }
+                    targetDeviceIP = routerTable.get("Registry");
+                    GAHttpClient upload = new GAHttpClient(targetDeviceIP);
+                    upload.handlePostRequest(dataJson);
+                }
+                else{
+                    if(routerTable.containsKey(targetName)){
+                        targetDeviceIP = routerTable.get(targetName);
+                    }else{
+                        GAHttpClient reqIP = new GAHttpClient(
+                                "http://api.devices.com:8080/"+targetName);//need to modify the ip address
+                        targetDeviceIP = GAUtils.JSONParser(
+                                reqIP.handleGetResponseBody(),"URI"
+                        );
+                        routerTable.put(targetName,targetDeviceIP);
+                    }
+                    GAHttpClient forward = new GAHttpClient(targetDeviceIP);
+                    forward.handlePutResponseBody(dataJson);
+                }
+                out.println("success\n\n");//return operation result
+            }
+            catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+    }
+    private String MakeStatus(String jsonSrc){
+        //Make device Status Json
+        if(jsonSrc!=null){
+            try{
+                Map<String,String> tmp = new HashMap<>();
+                JSONObject jsonObject = new JSONObject(jsonSrc);
+                Iterator iterator = jsonObject.keys();
+                while(iterator.hasNext()){
+                    String key = (String) iterator.next();
+                    if(!key.equalsIgnoreCase("targetName")){
+                        String value = jsonObject.getString(key);
+                        tmp.put(key,value);
+                    }
+                }
+                return GAUtils.JsonBuilder(tmp);
+            }catch(JSONException e){
+                return null;
+            }
+        }else{
+            return null;
         }
     }
 }

@@ -26,9 +26,15 @@ public class GAHttpServer implements Runnable{
     @Override
     public void run() {
         try{
+            String deviceName = "local";
+            if(statusJSON!=null){
+                deviceName = GAUtils.JSONParser(statusJSON,"Name");
+            }
             InetSocketAddress address = new InetSocketAddress(8080);
             HttpServer server = HttpServer.create(address,0);
-            server.createContext("/",new RootHandler());
+            server.createContext("/info",new RootHandler());
+            server.createContext("/deviceLogic",new ForwardHandler());
+            server.createContext("/apis",new InterfaceHandler());
             server.setExecutor(Executors.newCachedThreadPool());
             server.start();
         }catch(IOException e){
@@ -51,21 +57,51 @@ class RootHandler implements HttpHandler{
             responseBody.write(GAHttpServer.getStatusJSON().getBytes());
             responseBody.close();
         }else if(request.equalsIgnoreCase("PUT")){
-            //handle PUT Request method
-            //forward data to logic module
-            Headers responseHeader = httpExchange.getResponseHeaders();
-            responseHeader.set("Content-Type","text/plain");
-            httpExchange.sendResponseHeaders(200,0);
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(httpExchange.getRequestBody()));
-            StringBuilder tmp = new StringBuilder();// any need to consider about thread safety ?
-            String line;
-            while((line = in.readLine())!=null){
-                if(line.length() == 0) break;
-                tmp.append(line);
-            }
-            UpdateClient uc = new UpdateClient();//update Data
-            uc.send(tmp.toString());
+            //pass
         }
+    }
+}
+class ForwardHandler implements HttpHandler{
+    //handle forward request
+    @Override
+    public void handle(HttpExchange httpExchange) throws IOException {
+        String request = httpExchange.getRequestMethod().toUpperCase();
+        switch (request){
+            case ("GET"):{
+                //Handle GET method
+                break;
+            }case("PUT"):{
+                //handle PUT Request method
+                //forward data to logic module
+                Headers responseHeader = httpExchange.getResponseHeaders();
+                responseHeader.set("Content-Type","text/plain");
+                httpExchange.sendResponseHeaders(200,0);
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(httpExchange.getRequestBody()));
+                StringBuilder tmp = new StringBuilder();// any need to consider about thread safety ?
+                String line;
+                while((line = in.readLine())!=null){
+                    if(line.length() == 0) break;
+                    tmp.append(line);
+                }
+                OutputStream responseBody = httpExchange.getResponseBody();
+                String res = "{\"status\":\"OK\"}";
+                responseBody.write(res.getBytes());
+                responseBody.close();
+                //TODO:improve PUT method, write info to response body
+//                System.out.println(tmp.toString());
+                UpdateClient uc = new UpdateClient("Logic",4096);//update Data
+                uc.send(tmp.toString());
+                break;
+            }
+        }
+
+    }
+}
+class InterfaceHandler implements HttpHandler{
+
+    @Override
+    public void handle(HttpExchange httpExchange) throws IOException {
+
     }
 }

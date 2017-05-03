@@ -25,7 +25,7 @@ public class UpdateClient{
             PrintWriter to = new PrintWriter(
                     new OutputStreamWriter(sock.getOutputStream()))
         ){
-            to.print(Content+'\n');
+            to.print(Content+"\n\n");
             to.flush();
         }catch(Exception e){
             e.printStackTrace();

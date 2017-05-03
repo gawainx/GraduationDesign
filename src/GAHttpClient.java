@@ -38,18 +38,14 @@ public class GAHttpClient {
         CloseableHttpResponse response = httpClient.execute(request);
         return EntityUtils.toString(response.getEntity());
     }
-    public String handleDeleteRequest(String data){
+    public int handlePostRequest(String data) throws IOException{
         /* TODO : How to delete data from Registry */
-        return "DONE";
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        HttpPut request = new HttpPut(targetURL);
+        request.setHeader("User-Agent","IOT device/Communicate Module");
+        request.setEntity(new StringEntity(data));
+        CloseableHttpResponse response = httpClient.execute(request);
+        return response.getStatusLine().getStatusCode();
     }
-    public static String JSONParser(String src,String field){
-        //Parse Json String
-        try{
-            JSONTokener jsonTokener = new JSONTokener(src);
-            JSONObject tmp = (JSONObject)jsonTokener.nextValue();
-            return tmp.getString(field);
-        }catch(JSONException e){
-            return "NIL";
-        }
-    }
+
 }
