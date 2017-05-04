@@ -31,7 +31,7 @@ public class GAHttpServer implements Runnable{
             }
             InetSocketAddress address = new InetSocketAddress(8080);
             HttpServer server = HttpServer.create(address,0);
-            server.createContext("/info",new RootHandler());
+            server.createContext("/"+deviceName,new RootHandler());
             server.createContext("/deviceLogic",new ForwardHandler());
             server.createContext("/apis",new InterfaceHandler());
             server.setExecutor(Executors.newCachedThreadPool());
@@ -55,8 +55,6 @@ class RootHandler implements HttpHandler{
             OutputStream responseBody = httpExchange.getResponseBody();
             responseBody.write(GAHttpServer.getStatusJSON().getBytes());
             responseBody.close();
-        }else if(request.equalsIgnoreCase("PUT")){
-            //pass
         }
     }
 }
@@ -84,7 +82,7 @@ class ForwardHandler implements HttpHandler{
                     tmp.append(line);
                 }
                 OutputStream responseBody = httpExchange.getResponseBody();
-                String res = "{\"status\":\"OK\"}";
+                String res = "success";
                 responseBody.write(res.getBytes());
                 responseBody.close();
                 UpdateClient uc = new UpdateClient("Logic",4096);//update Data

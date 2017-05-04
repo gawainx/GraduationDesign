@@ -1,15 +1,17 @@
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Tools Class
  * Created by gawainx on 2017/5/2.
  */
-public class GAUtils {
-    public static String JsonBuilder(Map<String,String> src){
+class GAUtils {
+    static String JsonBuilder(Map<String, String> src){
         //Build Json
         JSONObject jsonObj = new JSONObject();
         if(src!=null){
@@ -33,5 +35,21 @@ public class GAUtils {
         }catch(JSONException e){
             return null;
         }
+    }
+    static Map<String,String> JsonArrayParser(String jsonSrc){
+        if(jsonSrc == null) return null;
+        Map<String,String> ans = new HashMap<>();
+        try {
+            JSONArray jsonArr = new JSONArray(jsonSrc);
+            for (int i = 0; i < jsonArr.length(); i++){
+                JSONObject jsonObj = jsonArr.getJSONObject(i);
+                String key = jsonObj.getString("ID");
+                String val = jsonObj.getString("IP");
+                ans.put(key,val);
+            }
+        }catch (JSONException e){
+            return null;
+        }
+        return ans;
     }
 }

@@ -66,42 +66,58 @@ public class ForwardServer implements Runnable{
                 String dataJson = mes.toString();
 
                 String targetName = GAUtils.JSONParser(dataJson,"targetName");
+                String targetID = GAUtils.JSONParser(dataJson,"targetID");
+                //targetName and targetID can't be null at the same time
                 String targetDeviceIP = null;
                     /*TODO: Can add Cache Map to storage id-IP Tables here. Need to modify. Name-id-IP*/
-                if(targetName.equalsIgnoreCase("Registry")){
-                    //report local status to registry
-                    //TODO Send info to Registry
-                    routerTable.clear();
-                    String tmp = MakeStatus(dataJson);
-                    if(tmp!=null){
-                        GAHttpServer.setStatusJSON(tmp);
-                    }
-                    targetDeviceIP = routerTable.get("Registry");
-                    GAHttpClient upload = new GAHttpClient(targetDeviceIP);
-                    upload.handlePostRequest(dataJson);
-                }
-                else{
-                    if(routerTable.containsKey(targetName)){
-                        targetDeviceIP = routerTable.get(targetName);
+                if(targetID!=null){
+                    if(targetID.equalsIgnoreCase("Registry")){
+                        //report device status and update local status
+                        GAHttpServer.setStatusJSON(MakeStatus(dataJson));
+                        targetDeviceIP = "http://api.mei99.com:6133";
+                        GAHttpClient infoUploader = new GAHttpClient(targetDeviceIP);
+                        infoUploader.handlePostRequest(dataJson);
+                    }else if(routerTable.containsKey(targetID)){
+                        targetDeviceIP = routerTable.get(targetID);
+                        GAHttpClient forwarder = new GAHttpClient(targetDeviceIP);
+                        String forwardRes = forwarder.handlePutResponseBody(dataJson);
+                        out.print(forwardRes+"\n\n");//handle transfer result
                     }else{
-                        GAHttpClient reqIP = new GAHttpClient(
-                                "http://api.devices.com:8080/devices"+targetName);//need to modify the ip address
-                        targetDeviceIP = GAUtils.JSONParser(
-                                reqIP.handleGetResponseBody(),"URI"
-                        );
-                        routerTable.put(targetName,targetDeviceIP);
+                        // not exist IP in local
+                        GAHttpClient findIPById = new GAHttpClient("http://api.mei99.com:6133/device/ID"+targetID);
+                        String resultJson = findIPById.handleGetResponseBody();
+                        if(resultJson == null){
+                            out.print("404\n\n");
+                            out.flush();
+                        }else{
+                            targetDeviceIP = GAUtils.JSONParser(resultJson,"IP");
+                            GAHttpClient forwarder = new GAHttpClient(targetDeviceIP);
+                            String forwardRes = forwarder.handlePutResponseBody(dataJson);
+                            out.print(forwardRes+"\n\n");//handle transfer result
+                        }
                     }
-                    GAHttpClient forward = new GAHttpClient(targetDeviceIP);
-                    forward.handlePutResponseBody(dataJson);
+                }else{
+                    //targetID is null, use targetName to find IP and forward data
+                    GAHttpClient findIPByName = new GAHttpClient("http://api.mei99.com:6133/devices/Name/"+targetName);
+                    String resJson = findIPByName.handleGetResponseBody();
+                    Map<String,String> resMap = GAUtils.JsonArrayParser(resJson);
+                    if(resMap!=null){
+                        for(Map.Entry<String,String> iter:resMap.entrySet()){
+                            targetDeviceIP = iter.getValue();
+                            GAHttpClient forwarder = new GAHttpClient(targetDeviceIP);
+                            String forwardRes = forwarder.handlePutResponseBody(dataJson);
+                            out.print(forwardRes+"\n\n");//handle transfer result
+                        }
+                        routerTable.putAll(resMap);
+                    }
                 }
-                out.println("success\n\n");//return operation result
             }
             catch (IOException e){
                 e.printStackTrace();
             }
         }
     }
-    private String MakeStatus(String jsonSrc){
+    static String MakeStatus(String jsonSrc){
         //Make device Status Json
         if(jsonSrc!=null){
             try{

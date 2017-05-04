@@ -27,7 +27,11 @@ public class GAHttpClient {
         HttpGet request = new HttpGet(targetURL);
         request.setHeader("User-Agent","IOT Device");
         CloseableHttpResponse response = httpClient.execute(request);
-        return EntityUtils.toString(response.getEntity());
+        if(response.getStatusLine().getStatusCode() == 200){return EntityUtils.toString(response.getEntity());}
+        else{
+            //404
+            return null;
+        }
     }
     public String handlePutResponseBody(String data) throws IOException{
         //Send Put Request
