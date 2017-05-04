@@ -18,10 +18,10 @@ public class ForwardServer implements Runnable{
     /*TODO:Modify,id-IP instead name-IP*/
     private static Map<String,String> routerTable = new HashMap<>();
 
-    public static void setRouterTable(String key,String value){
+    static void setRouterTable(String key, String value){
         routerTable.put(key,value);
     }
-    public ForwardServer(int p){
+    ForwardServer(int p){
         this.port = p;
     }
     ForwardServer(){
@@ -64,7 +64,7 @@ public class ForwardServer implements Runnable{
                     mes.append(line);// TODO:any need to handle /n ?
                 }
                 String dataJson = mes.toString();
-                System.out.println(dataJson);
+
                 String targetName = GAUtils.JSONParser(dataJson,"targetName");
                 String targetDeviceIP = null;
                     /*TODO: Can add Cache Map to storage id-IP Tables here. Need to modify. Name-id-IP*/
@@ -85,7 +85,7 @@ public class ForwardServer implements Runnable{
                         targetDeviceIP = routerTable.get(targetName);
                     }else{
                         GAHttpClient reqIP = new GAHttpClient(
-                                "http://api.devices.com:8080/"+targetName);//need to modify the ip address
+                                "http://api.devices.com:8080/devices"+targetName);//need to modify the ip address
                         targetDeviceIP = GAUtils.JSONParser(
                                 reqIP.handleGetResponseBody(),"URI"
                         );

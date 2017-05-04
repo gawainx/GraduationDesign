@@ -2,7 +2,6 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -88,8 +87,6 @@ class ForwardHandler implements HttpHandler{
                 String res = "{\"status\":\"OK\"}";
                 responseBody.write(res.getBytes());
                 responseBody.close();
-                //TODO:improve PUT method, write info to response body
-//                System.out.println(tmp.toString());
                 UpdateClient uc = new UpdateClient("Logic",4096);//update Data
                 uc.send(tmp.toString());
                 break;
