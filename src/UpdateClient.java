@@ -17,7 +17,7 @@ public class UpdateClient{
         this.port = 4096;
         this.hostName = "Logic";
     }
-    public void send(String Content){
+    public int send(String Content){
         //Forwarding data
         try(Socket sock = new Socket(hostName,port);
             PrintWriter to = new PrintWriter(
@@ -25,8 +25,9 @@ public class UpdateClient{
         ){
             to.print(Content+"\n\n");
             to.flush();
+            return 1;
         }catch(Exception e){
-            e.printStackTrace();
+            return -1;
         }
     }
 }

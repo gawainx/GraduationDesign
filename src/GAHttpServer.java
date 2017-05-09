@@ -55,6 +55,8 @@ class RootHandler implements HttpHandler{
             OutputStream responseBody = httpExchange.getResponseBody();
             responseBody.write(GAHttpServer.getStatusJSON().getBytes());
             responseBody.close();
+        }else{
+            httpExchange.sendResponseHeaders(400,0);
         }
     }
 }
@@ -72,21 +74,26 @@ class ForwardHandler implements HttpHandler{
                 //forward data to logic module
                 Headers responseHeader = httpExchange.getResponseHeaders();
                 responseHeader.set("Content-Type","text/plain");
-                httpExchange.sendResponseHeaders(200,0);
+                httpExchange.sendResponseHeaders(201,0);
                 BufferedReader in = new BufferedReader(
                         new InputStreamReader(httpExchange.getRequestBody()));
-                StringBuilder tmp = new StringBuilder();// any need to consider about thread safety ?
+                StringBuffer tmp = new StringBuffer();// any need to consider about thread safety ?
                 String line;
                 while((line = in.readLine())!=null){
                     if(line.length() == 0) break;
                     tmp.append(line);
                 }
+                UpdateClient uc = new UpdateClient("Logic",4096);//update Data
+                int ucRes = uc.send(tmp.toString());
                 OutputStream responseBody = httpExchange.getResponseBody();
-                String res = "success";
+                String res;
+                if(ucRes == 1){
+                    res = "success\n\n";
+                }else{
+                    res = "failed\n\n";
+                }
                 responseBody.write(res.getBytes());
                 responseBody.close();
-                UpdateClient uc = new UpdateClient("Logic",4096);//update Data
-                uc.send(tmp.toString());
                 break;
             }
         }
@@ -97,6 +104,28 @@ class InterfaceHandler implements HttpHandler{
 
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
-
+        String requestMethod = httpExchange.getRequestMethod();
+        if(requestMethod.equalsIgnoreCase("PUT")
+                ||requestMethod.equalsIgnoreCase("DELETE")){
+            Headers responseHeaders = httpExchange.getResponseHeaders();
+            responseHeaders.set("Content-Type","text/plain");
+            httpExchange.sendResponseHeaders(200,0);
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(httpExchange.getRequestBody()));
+            StringBuffer tmp = new StringBuffer();// any need to consider about thread safety ?
+            if(requestMethod.equalsIgnoreCase("PUT")){
+                tmp.append("PUT\n");
+            }else{
+                tmp.append("DELETE\n");
+            }
+            String line;
+            while((line = in.readLine())!=null){
+                if(line.length() == 0) break;
+                tmp.append(line);
+            }
+            tmp.append("\n\n");
+            UpdateClient uc = new UpdateClient();
+            uc.send(tmp.toString());
+        }
     }
 }
