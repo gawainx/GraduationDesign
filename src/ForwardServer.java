@@ -82,11 +82,16 @@ public class ForwardServer implements Runnable{
                 if(targetID != null){
                     if(targetID.equalsIgnoreCase("Registry")){
                         //report device status and update local status
-                        GAHttpServer.setStatusJSON(MakeStatus(dataJson));
-                        String id = GAUtils.JSONParser(dataJson,"ID");
+//                        GAHttpServer.setStatusJSON(MakeStatus(dataJson));
+//                        GAHttpServer.setStatusJSON(dataJson);
+//                        System.out.println("dataJson:"+dataJson);
+                        String statusJson = MakeStatus(dataJson);
+//                        System.out.println("statusJson in Forward:"+statusJson);
+                        GAHttpServer.statusJSON = statusJson;
+                        String id = GAUtils.JSONParser(dataJson,"id");
                         targetDeviceIP = registryURI+"/devices/ID/"+id;
                         GAHttpClient infoUploader = new GAHttpClient(targetDeviceIP);
-                        infoUploader.handlePutResponseBody(dataJson);
+                        infoUploader.handlePutResponseBody(dataJson+"\n\n");
                     }else if(GAUtils.routerTable.containsKey(targetID)){
                         targetDeviceIP = GAUtils.routerTable.get(targetID);
                         GAHttpClient forwarder = new GAHttpClient(targetDeviceIP);
@@ -100,7 +105,7 @@ public class ForwardServer implements Runnable{
                             out.print("404\n\n");
                             out.flush();
                         }else{
-                            targetDeviceIP = GAUtils.JSONParser(resultJson,"IP");
+                            targetDeviceIP = GAUtils.JSONParser(resultJson,"ip");
                             GAHttpClient forwarder = new GAHttpClient(targetDeviceIP);
                             String forwardRes = forwarder.handlePutResponseBody(dataJson);
                             out.print(forwardRes+"\n\n");//handle transfer result
@@ -108,7 +113,7 @@ public class ForwardServer implements Runnable{
                     }
                 }else{
                     //targetID is null, use targetName to find IP and forward data
-                    GAHttpClient findIPByName = new GAHttpClient("http://api.mei99.com:6133/devices/Name/"+targetName);
+                    GAHttpClient findIPByName = new GAHttpClient(registryURI+"/devices/Name/"+targetName);
                     String resJson = findIPByName.handleGetResponseBody();
                     Map<String,String> resMap = GAUtils.JsonArrayParser(resJson,"id","ip");//ID-IP map
                     if(resMap!=null){
@@ -128,7 +133,7 @@ public class ForwardServer implements Runnable{
                 }
             }
             catch (IOException e){
-                e.printStackTrace();
+                System.out.println("error");
             }
         }
     }
@@ -141,8 +146,9 @@ public class ForwardServer implements Runnable{
                 Iterator iterator = jsonObject.keys();
                 while(iterator.hasNext()){
                     String key = (String) iterator.next();
-                    if((!key.equalsIgnoreCase("targetName"))||
-                            (!key.equalsIgnoreCase("targetID"))){
+                    if((key.equalsIgnoreCase("targetName"))||
+                            (key.equalsIgnoreCase("targetID"))){
+                    }else{
                         String value = jsonObject.getString(key);
                         tmp.put(key,value);
                     }

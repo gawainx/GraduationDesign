@@ -50,11 +50,13 @@ class GAHttpClient {
         request.setHeader("User-Agent","IOT device/Communicate Module");
         request.setEntity(new StringEntity(data));
         CloseableHttpResponse response = httpClient.execute(request);
-        if(response.getStatusLine().getStatusCode() == 200){
+        if(response.getStatusLine().getStatusCode() == 201){
             return EntityUtils.toString(response.getEntity());
         }else{
             return "failed";
         }
+//        return EntityUtils.toString(response.getEntity());
+//        return response.getStatusLine().toString();
     }
     int handlePostRequest(String data) throws IOException{
         CloseableHttpClient httpClient = HttpClients.createDefault();

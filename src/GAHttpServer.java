@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
  * HTTP Server For REST
  */
 public class GAHttpServer implements Runnable{
-    static private String statusJSON;//return device status info
+    static String statusJSON;//return device status info
     public static void setStatusJSON(String json){
         statusJSON = json;
     }
@@ -27,10 +27,11 @@ public class GAHttpServer implements Runnable{
         try{
             String deviceName = "local";
             if(statusJSON!=null){
-                deviceName = GAUtils.JSONParser(statusJSON,"Name");
+                deviceName = GAUtils.JSONParser(statusJSON,"name");
             }
             InetSocketAddress address = new InetSocketAddress(8080);
             HttpServer server = HttpServer.create(address,0);
+            server.createContext("/",new RootHandler());
             server.createContext("/"+deviceName,new RootHandler());
             server.createContext("/deviceLogic",new ForwardHandler());
             server.createContext("/apis",new InterfaceHandler());
@@ -65,37 +66,31 @@ class ForwardHandler implements HttpHandler{
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
         String request = httpExchange.getRequestMethod().toUpperCase();
-        switch (request){
-            case ("GET"):{
-                //Handle GET method
-                break;
-            }case("PUT"):{
-                //handle PUT Request method
-                //forward data to logic module
-                Headers responseHeader = httpExchange.getResponseHeaders();
-                responseHeader.set("Content-Type","text/plain");
-                httpExchange.sendResponseHeaders(201,0);
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(httpExchange.getRequestBody()));
-                StringBuffer tmp = new StringBuffer();// any need to consider about thread safety ?
-                String line;
-                while((line = in.readLine())!=null){
-                    if(line.length() == 0) break;
-                    tmp.append(line);
-                }
-                UpdateClient uc = new UpdateClient("Logic",4096);//update Data
-                int ucRes = uc.send(tmp.toString());
-                OutputStream responseBody = httpExchange.getResponseBody();
-                String res;
-                if(ucRes == 1){
-                    res = "success\n\n";
-                }else{
-                    res = "failed\n\n";
-                }
-                responseBody.write(res.getBytes());
-                responseBody.close();
-                break;
+        if(request.equalsIgnoreCase("PUT")){
+            //handle PUT Request method
+            //forward data to logic module
+            Headers responseHeader = httpExchange.getResponseHeaders();
+            responseHeader.set("Content-Type","text/plain");
+            httpExchange.sendResponseHeaders(201,0);
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(httpExchange.getRequestBody()));
+            StringBuffer tmp = new StringBuffer();// any need to consider about thread safety ?
+            String line;
+            while((line = in.readLine())!=null){
+                if(line.length() == 0) break;
+                tmp.append(line);
             }
+            UpdateClient uc = new UpdateClient("Logic",4096);//update Data
+            int ucRes = uc.send(tmp.toString());
+            OutputStream responseBody = httpExchange.getResponseBody();
+            String res;
+            if(ucRes == 1){
+                res = "success\n\n";
+            }else{
+                res = "failed\n\n";
+            }
+            responseBody.write(res.getBytes());
+            responseBody.close();
         }
 
     }
