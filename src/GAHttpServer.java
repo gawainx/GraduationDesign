@@ -54,8 +54,14 @@ class RootHandler implements HttpHandler{
             httpExchange.sendResponseHeaders(200,0);
 
             OutputStream responseBody = httpExchange.getResponseBody();
-            responseBody.write(GAHttpServer.getStatusJSON().getBytes());
-            responseBody.close();
+            if(GAHttpServer.statusJSON != null){
+                responseBody.write(GAHttpServer.getStatusJSON().getBytes());
+                responseBody.close();
+            }else{
+                responseBody.write("No Status\n".getBytes());
+                responseBody.close();
+            }
+
         }else{
             httpExchange.sendResponseHeaders(400,0);
         }

@@ -80,24 +80,41 @@ public class MultiForwardServer implements Runnable {
                 JSONArray jsonArray = new JSONArray();
                 JSONObject jsonObject = new JSONObject();
                 for(String k : forwardMap.keySet()){
-                    jsonArray.put(k);
-                }
-                jsonObject.put("ids",jsonArray.toString());
-                GAHttpClient uriGetter = new GAHttpClient(RegistryURI);
-                String jsonSet = uriGetter.handleGetResponseBody(jsonObject.toString());//jsonSet will be id-IP format json data
-                if(jsonSet != null){
-                    JSONObject resSet = new JSONObject(jsonSet);
-                    Iterator iterator = resSet.keys();
-                    while(iterator.hasNext()){
-                        String id = (String) iterator.next();
-                        String targetUri = resSet.getString(id);
+                    if(GAUtils.routerTable.containsKey(k)){
+                        String targetUri = GAUtils.routerTable.get(k);
                         GAHttpClient forwarder = new GAHttpClient(targetUri);
-                        String forwardResult = forwarder.handlePutResponseBody(forwardMap.get(id));
-                        out.print(forwardResult+"\n\n");
+                        String res = forwarder.handlePutResponseBody(forwardMap.get(k));
+                        out.print(res+"\n\n");
+                    }else{
+                        jsonArray.put(k);
                     }
+                }
+
+                if(jsonArray.length() == 1){
+                    String targetId = jsonArray.getString(0);
+                    GAHttpClient uriGetter = new GAHttpClient(getRegistryURI()+"/devices/ID/"+targetId);
+                    String targetUri = GAUtils.JSONParser(uriGetter.handleGetResponseBody(),"ip");
+                    GAHttpClient forward = new GAHttpClient(targetUri);
+                    String res = forward.handlePutResponseBody(forwardMap.get(targetId));
+                    out.print(res+"\n\n");
                 }else{
-                    //json set is null
-                    out.print("failed\n\n");
+                    jsonObject.put("devices",jsonArray.toString());
+                    GAHttpClient uriGetter = new GAHttpClient(RegistryURI);
+                    String jsonSet = uriGetter.handleGetResponseBody(jsonObject.toString());//jsonSet will be id-IP format json data
+                    if(jsonSet != null){
+                        JSONObject resSet = new JSONObject(jsonSet);
+                        Iterator iterator = resSet.keys();
+                        while(iterator.hasNext()){
+                            String id = (String) iterator.next();
+                            String targetUri = resSet.getString(id);
+                            GAHttpClient forwarder = new GAHttpClient(targetUri);
+                            String forwardResult = forwarder.handlePutResponseBody(forwardMap.get(id));
+                            out.print(forwardResult+"\n\n");
+                        }
+                    }else{
+                        //json set is null
+                        out.print("failed\n\n");
+                    }
                 }
             }catch (Exception e){
                 e.printStackTrace();

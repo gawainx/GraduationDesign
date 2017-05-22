@@ -1,8 +1,5 @@
 import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.*;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -58,13 +55,17 @@ class GAHttpClient {
 //        return EntityUtils.toString(response.getEntity());
 //        return response.getStatusLine().toString();
     }
-    int handlePostRequest(String data) throws IOException{
+    String handlePostRequest(String data) throws IOException{
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPut request = new HttpPut(targetURL);
+        HttpPost request = new HttpPost(targetURL);
         request.setHeader("User-Agent","IOT device/Communicate Module");
         request.setEntity(new StringEntity(data));
         CloseableHttpResponse response = httpClient.execute(request);
-        return response.getStatusLine().getStatusCode();
+        if(response.getStatusLine().getStatusCode() == 201){
+            return EntityUtils.toString(response.getEntity());
+        }else{
+            return null;
+        }
     }
     int handleDeleteRequest(String name) throws IOException{
         /* TODO : How to delete data from Registry */

@@ -91,7 +91,7 @@ public class ForwardServer implements Runnable{
                         String id = GAUtils.JSONParser(dataJson,"id");
                         targetDeviceIP = registryURI+"/devices/ID/"+id;
                         GAHttpClient infoUploader = new GAHttpClient(targetDeviceIP);
-                        infoUploader.handlePutResponseBody(dataJson+"\n\n");
+                        infoUploader.handlePostRequest(dataJson+"\n\n");
                     }else if(GAUtils.routerTable.containsKey(targetID)){
                         targetDeviceIP = GAUtils.routerTable.get(targetID);
                         GAHttpClient forwarder = new GAHttpClient(targetDeviceIP);
